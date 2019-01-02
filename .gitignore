@@ -19,4 +19,4 @@ node_modules
 project.org
 tmp.*
 *.tmp
-signal-config.yml
+.cmiles74-signal.yml
