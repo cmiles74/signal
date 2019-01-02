@@ -40,11 +40,21 @@
   - Load the configuration file specified by 'path-in'
   - Search for and load a configuration file named 'file-in'
   - If the above fail, returns the default configuration"
-  [default-config file-name path-in]
+  [path-in file-name default-config ]
   (cond
     path-in (read-config-file path-in)
     (find-config-file file-name) (read-config-file (find-config-file file-name))
     :else default-config))
+
+(defn save-config-file
+  "Saves the provided configuration map to the specified file name at the provided
+  path."
+  [path-in file-name config-map]
+  (try+
+   (spit (str path-in "/" file-name) (yaml/generate-string config-map))
+   (catch Exception exception
+     (error "Could not write the configuration file: " (.getMessage exception))
+     (throw+))))
 
 (defn load-config-file
   "Accepts a default configuration map, the name of a configuration file and,
@@ -56,13 +66,12 @@
   - If the above fail, returns the default configuration
 
   Any errors are logged and then re-thrown for further handling."
-  [default-config file-name path-in]
+  [path-in file-name default-config]
   (try+
-   (do-load-config-file default-config file-name path-in)
+   (do-load-config-file path-in file-name default-config)
    (catch java.io.IOException exception
      (error "Could not open the configuration file:" (.getMessage exception))
      (throw+ ))
    (catch Exception exception
      (error "Could not read the configuration file: " (.getMessage exception))
      (throw+))))
-

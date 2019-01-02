@@ -23,13 +23,15 @@
 (defonce bcp-provider-index
   (Security/addProvider (new BouncyCastleProvider)))
 
-(defn load-user-config
-  []
-  (try+
-   (cli/load-config-file nil)
-   (catch [:type :no-config] {:keys [message]}
-     (warn message))))
+;;
+;; Create a new configuration file
+;;
+;; (def c (cli/store-user-config "4135557878"))
 
+;;
+;; Load the configuration file
+;;
+;; (def c (cli/load-user-config))
 
 (defn signal-config
   [config]
