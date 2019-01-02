@@ -6,9 +6,10 @@
                  spy get-env log-env)]
    [taoensso.timbre.profiling :as profiling
     :refer (pspy pspy* profile defnp p p*)]
-   [slingshot.slingshot :only [throw+ try+]]
    [clj-yaml.core :as yaml]
+   [cmiles74.signal.cli :as cli]
    [cmiles74.signal.trust :as trust])
+  (:use [slingshot.slingshot :only [try+ throw+]])
   (:import
    [java.security Security]
    [org.bouncycastle.jce.provider BouncyCastleProvider]
@@ -22,16 +23,12 @@
 (defonce bcp-provider-index
   (Security/addProvider (new BouncyCastleProvider)))
 
-(defonce default-config
-  {:signal
-   {:user-agent "cmiles74-signal"
-    :signal-url "https://textsecure-service.whispersystems.org"
-    :cdn-url "https://cdn.signal.org"}})
-
 (defn load-user-config
   []
-  (merge (yaml/parse-string (slurp "signal-config.yml"))
-         default-config))
+  (try+
+   (cli/load-config-file nil)
+   (catch [:type :no-config] {:keys [message]}
+     (warn message))))
 
 
 (defn signal-config
