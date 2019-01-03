@@ -18,6 +18,13 @@
    [org.whispersystems.signalservice.internal.configuration SignalContactDiscoveryUrl]
    [org.whispersystems.signalservice.api SignalServiceAccountManager]))
 
+;; signal configuration
+(defonce signal-config
+  {:signal
+   {:user-agent "cmiles74-signal"
+    :signal-url "https://textsecure-service.whispersystems.org"
+    :cdn-url "https://cdn.signal.org"}})
+
 (defonce bcp-provider-index
   (Security/addProvider (new BouncyCastleProvider)))
 
@@ -27,9 +34,9 @@
   [config]
   (let [trust-store (trust/create)]
     (new SignalServiceConfiguration
-         (into-array [(new SignalServiceUrl (get-in config [:signal :signal-url]) trust-store)])
-         (into-array [(new SignalCdnUrl (get-in config [:signal :cdn-url]) trust-store)])
-         (into-array [(new SignalContactDiscoveryUrl (get-in config [:signal :signal-url]) trust-store)]))))
+         (into-array [(new SignalServiceUrl (get-in signal-config [:signal :signal-url]) trust-store)])
+         (into-array [(new SignalCdnUrl (get-in signal-config [:signal :cdn-url]) trust-store)])
+         (into-array [(new SignalContactDiscoveryUrl (get-in signal-config [:signal :signal-url]) trust-store)]))))
 
 (defn manager
   "Returns a new SignalServiceAccountManager instance that is configured with the
@@ -40,7 +47,7 @@
          service-config
          (get-in config-in [:account :username])
          (get-in config-in [:account :password])
-         (get-in config-in [:signal :user-agent]))))
+         (get-in signal-config [:signal :user-agent]))))
 
 (defn register-sms
   [manager-in]

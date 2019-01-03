@@ -8,21 +8,36 @@
     :refer (pspy pspy* profile defnp p p*)]
    [clj-yaml.core :as yaml]
    [cmiles74.signal.cli :as cli]
+   [cmiles74.signal.secret :as secret]
    [cmiles74.signal.signal :as signal])
-  (:use [slingshot.slingshot :only [try+ throw+]]))
+  (:use [slingshot.slingshot :only [try+ throw+]])
+  (:import
+   [org.whispersystems.libsignal IdentityKeyPair]
+   [org.whispersystems.libsignal.util KeyHelper]))
 
 ;;
-;; Create a new configuration file
+;; Create a new account
 ;;
-;; (def c (cli/store-user-config "4135557878"))
+;; (def a (secret/create-account "4135557878"))
 
 ;;
-;; Load the configuration file
+;; Store the account to the default location.
 ;;
-;; (def c (cli/load-user-config))
+;; (cli/store-account a)
+
+;;
+;; Load the account from the default location.
+;;
+;; (def c (cli/load-account))
 
 ;;
 ;; Create a signal manager
 ;;
 ;; (def m (signal/manager c))
+
+;;
+;; Request SMS verification code
+;;
+;; (.requestSmsVerificationCode m)
+
 

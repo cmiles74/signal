@@ -7,11 +7,12 @@
    [taoensso.timbre.profiling :as profiling
     :refer (pspy pspy* profile defnp p p*)]
    [clj-yaml.core :as yaml]
-   [cmiles74.signal.cli :as cli]
    [cmiles74.signal.signal :as signal])
   (:use [slingshot.slingshot :only [try+ throw+]])
   (:import
    [java.security SecureRandom]
+   [org.whispersystems.libsignal IdentityKeyPair]
+   [org.whispersystems.libsignal.util KeyHelper]
    [org.whispersystems.signalservice.internal.util Base64]))
 
 (defn new-secure-random
@@ -55,3 +56,26 @@
   "Returns a new Signal signaling key."
   [] (secret-string 52))
 
+(defn create-account
+  ([phone-number] (create-account "+1" phone-number))
+  ([country-code phone-number]
+   {:account
+    {:username (str country-code phone-number)
+     :password (password)
+     :signaling-key (signaling-key)
+     :registration-id (KeyHelper/generateRegistrationId false)
+     :identity-keypair (KeyHelper/generateIdentityKeyPair)}}))
+
+(defn transform-account-for-storage
+  [config-map]
+  (assoc config-map :account
+         (merge (:account config-map)
+                {:identity-keypair (Base64/encodeBytes
+                                    (.serialize (get-in config-map [:account :identity-keypair])))})))
+
+(defn transform-account-from-storage
+  [config-map]
+  (assoc config-map :account
+         (merge (:account config-map)
+                {:identity-keypair (IdentityKeyPair.
+                                    (Base64/decode (get-in config-map [:account :identity-keypair])))})))
