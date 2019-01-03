@@ -9,6 +9,7 @@
    [clj-yaml.core :as yaml]
    [cmiles74.signal.cli :as cli]
    [cmiles74.signal.secret :as secret]
+   [cmiles74.signal.account :as account]
    [cmiles74.signal.signal :as signal])
   (:use [slingshot.slingshot :only [try+ throw+]])
   (:import
@@ -18,17 +19,17 @@
 ;;
 ;; Create a new account
 ;;
-;; (def a (secret/create-account "4135557878"))
+;; (def a (account/create "4135557878"))
 
 ;;
 ;; Store the account to the default location.
 ;;
-;; (cli/store-account a)
+;; (account/store a)
 
 ;;
 ;; Load the account from the default location.
 ;;
-;; (def c (cli/load-account))
+;; (def c (account/load))
 
 ;;
 ;; Create a signal manager
@@ -38,6 +39,6 @@
 ;;
 ;; Request SMS verification code
 ;;
-;; (.requestSmsVerificationCode m)
+;; (signal/register-sms m)
 
 

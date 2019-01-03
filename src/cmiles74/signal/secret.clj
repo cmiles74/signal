@@ -56,26 +56,3 @@
   "Returns a new Signal signaling key."
   [] (secret-string 52))
 
-(defn create-account
-  ([phone-number] (create-account "+1" phone-number))
-  ([country-code phone-number]
-   {:account
-    {:username (str country-code phone-number)
-     :password (password)
-     :signaling-key (signaling-key)
-     :registration-id (KeyHelper/generateRegistrationId false)
-     :identity-keypair (KeyHelper/generateIdentityKeyPair)}}))
-
-(defn transform-account-for-storage
-  [config-map]
-  (assoc config-map :account
-         (merge (:account config-map)
-                {:identity-keypair (Base64/encodeBytes
-                                    (.serialize (get-in config-map [:account :identity-keypair])))})))
-
-(defn transform-account-from-storage
-  [config-map]
-  (assoc config-map :account
-         (merge (:account config-map)
-                {:identity-keypair (IdentityKeyPair.
-                                    (Base64/decode (get-in config-map [:account :identity-keypair])))})))
