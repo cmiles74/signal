@@ -7,7 +7,9 @@
                  spy get-env log-env)]
    [taoensso.timbre.profiling :as profiling
     :refer (pspy pspy* profile defnp p p*)]
-   [cmiles74.common.config :as config])
+   [cmiles74.common.config :as config]
+   [cmiles74.signal.secret :as secret]
+   [cmiles74.signal.signal :as signal])
   (:use [slingshot.slingshot :only [try+ throw+]]))
 
 ;; default configuration
@@ -19,15 +21,6 @@
 
 ;; default name of the configuration file
 (def DEFAULT-CONFIG-FILE ".cmiles74-signal.yml")
-
-(defn generate-password
-  "Randomly generates a password of the specified length or with the le of
-  16 if no length is specified."
-  ([] (generate-password 16))
-  ([length]
-   (let [chars (map char (range 33 127))
-         password (take length (repeatedly #(rand-nth chars)))]
-     (apply str password))))
 
 (defn store-config-file
   "Stores the provided map of configuration data to to the provided path with
@@ -58,7 +51,7 @@
   ([phone-number] (store-user-config "+1" phone-number))
   ([country-code phone-number]
    (let [user-config {:account {:username (str country-code phone-number)
-                                :password (generate-password)}}]
+                                :password (secret/password)}}]
      (store-config-file user-config)
      (merge DEFAULT-CONFIG user-config))))
 
