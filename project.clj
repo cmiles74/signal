@@ -12,6 +12,7 @@
                  [org.bouncycastle/bcprov-jdk15on "1.60"]
                  [org.whispersystems/signal-service-java "2.12.2"]]
   :main cmiles74.signal.cli
+  :repl-options { :init-ns user}
 
   :profiles {:uberjar {:aot :all}
              :dev {:source-paths ["dev"]}})

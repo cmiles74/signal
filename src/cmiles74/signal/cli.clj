@@ -1,4 +1,5 @@
 (ns cmiles74.signal.cli
+  (:gen-class)
   (:require
    [taoensso.timbre :as timbre
     :refer (log  trace  debug  info  warn  error  fatal  report
@@ -68,3 +69,17 @@
    (load-config-file nil)
    (catch [:type :no-config] {:keys [message]}
      (warn message))))
+
+;;
+;; Bootstrapping functions
+;;
+
+(defn main
+  "Bootstraps the application and handles command line arguments."
+  [& args]
+  (info "Hello from the Signal Client!"))
+
+(defn -main
+  "The bootstrapping function used to start the application."
+  [& args]
+  (apply main args))
