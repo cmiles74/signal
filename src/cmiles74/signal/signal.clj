@@ -57,7 +57,7 @@
    (catch Exception exception
      (throw+ {:type :register-fail :message (.getMessage exception)}))))
 
-(defn register-sms
+(defn register-voice
   [manager-in]
   (try+
    (.requestVoiceVerificationCode manager-in)
