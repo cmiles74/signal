@@ -39,10 +39,14 @@
 ;;
 ;; Request SMS verification code
 ;;
+;; Registering will un-register your other device.
+;;
 ;; (signal/register-sms m)
 
 ;;
 ;; Verify the code
+;;
+;; Verification will complete registration and un-register your other device.
 ;;
 ;; (def c (signal/verify-code m a CODE))
 ;;
