@@ -12,6 +12,7 @@
    [java.security Security]
    [org.bouncycastle.jce.provider BouncyCastleProvider]
    [org.whispersystems.signalservice.api.push TrustStore]
+   [org.whispersystems.signalservice.api.crypto UnidentifiedAccess]
    [org.whispersystems.signalservice.internal.configuration SignalServiceConfiguration]
    [org.whispersystems.signalservice.internal.configuration SignalServiceUrl]
    [org.whispersystems.signalservice.internal.configuration SignalCdnUrl]
@@ -50,6 +51,7 @@
          (get-in signal-config [:signal :user-agent]))))
 
 (defn register-sms
+  "Registers the account and requests a verification code via SMS message."
   [manager-in]
   (try+
    (.requestSmsVerificationCode manager-in)
@@ -58,6 +60,7 @@
      (throw+ {:type :register-fail :message (.getMessage exception)}))))
 
 (defn register-voice
+  "Registers the account and requests a verification code via voice message."
   [manager-in]
   (try+
    (.requestVoiceVerificationCode manager-in)
@@ -65,4 +68,22 @@
    (catch Exception exception
      (throw+ {:type :register-fail :message (.getMessage exception)}))))
 
-
+(defn verify-code
+  "Verifies the supplied account with the provided verification code. Returns an
+  updated account map that should be saved to persistent storage."
+  [manager-in account code]
+  (try+
+   (.verifyAccountWithCode manager-in
+                           code
+                           (get-in account [:account :signaling-key])
+                           (get-in account [:account :registration-id])
+                           true    ; fetches messages
+                           nil
+                           (UnidentifiedAccess/deriveAccessKeyFrom (get-in account [:account :profile-key]))
+                           false) ; unrestricted unidentified access
+   (assoc account :account
+          (merge (:account account)
+                 {:registered true}))
+   (catch Exception exception
+     (warn "Error verifying account access code:" (.getMessage exception))
+     (throw+ {:type :verify-fail :message (.getMessage exception)}))))

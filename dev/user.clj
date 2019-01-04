@@ -29,16 +29,24 @@
 ;;
 ;; Load the account from the default location.
 ;;
-;; (def c (account/load))
+;; (def a (account/load))
 
 ;;
 ;; Create a signal manager
 ;;
-;; (def m (signal/manager c))
+;; (def m (signal/manager a))
 
 ;;
 ;; Request SMS verification code
 ;;
 ;; (signal/register-sms m)
 
+;;
+;; Verify the code
+;;
+;; (def c (signal/verify-code m a CODE))
+;;
+;; Store the updated account
+;;
+;; (account/store a)
 
