@@ -11,6 +11,8 @@
   (:use [slingshot.slingshot :only [try+ throw+]])
   (:import
    [java.security Security]
+   [java.util Optional]
+   [java.util Locale]
    [org.bouncycastle.jce.provider BouncyCastleProvider]
    [org.whispersystems.signalservice.api.push TrustStore]
    [org.whispersystems.signalservice.api.crypto UnidentifiedAccess]
@@ -58,7 +60,10 @@
 
 (defn register-sms
   "Registers the account and requests a verification code via SMS message.
-  Requires a valid session map as provided by `start-session`."
+  Requires a valid session map as provided by `start-session`.
+
+  The account and device are not considered to be 'registered' until the
+  `verify-code` function has been invoked with the verification code."
   [session]
   (try+
    (.requestSmsVerificationCode (get-in session [:session :manager]))
@@ -67,14 +72,20 @@
      (throw+ {:type :register-fail :message (.getMessage exception)}))))
 
 (defn register-voice
-  "Registers the account and requests a verification code via voice message.
-  Requires a valid session map as provided by `start-session`."
-  [session]
-  (try+
-   (.requestVoiceVerificationCode (get-in session [:session :manager]))
-   true
-   (catch Exception exception
-     (throw+ {:type :register-fail :message (.getMessage exception)}))))
+  "Registers the account and requests a verification code via voice call for the
+  provided locale (or the default locale if no locale is provided). Requires a
+  valid session map as provided by `start-session`.
+
+  The account and device are not considered to be 'registered' until the
+  `verify-code` function has been invoked with the verification code."
+  ([session] (register-voice session (Locale/getDefault)))
+  ([session locale]
+   (try+
+    (.requestVoiceVerificationCode (get-in session [:session :manager])
+                                   locale)
+    true
+    (catch Exception exception
+      (throw+ {:type :register-fail :message (.getMessage exception)})))))
 
 (defn verify-code
   "Verifies the supplied account with the provided verification code; if the
@@ -82,7 +93,10 @@
   Returns an updated session map that contains an updated account map and should
   be saved to persistent storage (simply provided the updated session map to the
   account/store function). Requires a valid session map as provided by
-  `start-session`."
+  `start-session`.
+
+  After this function completes, the account and device are considered
+  'registered'."
   ([session code] (verify-code session code nil))
   ([session code registration-lock-pin]
    (try+
@@ -93,10 +107,29 @@
                             true    ; fetches messages
                             registration-lock-pin
                             (UnidentifiedAccess/deriveAccessKeyFrom (get-in session [:account :profile-key]))
-                            false) ; unrestricted unidentified access
+                            false)  ; unrestricted unidentified access
     (assoc session :account
            (merge (:account session)
                   {:registered true}))
     (catch Exception exception
       (warn "Error verifying account access code:" (.getMessage exception))
       (throw+ {:type :verify-fail :message (.getMessage exception)})))))
+
+(defn unregister
+  "Un-registers the current account, the `fetchMessages` property for this account
+  will also be set to false on the server. If this is the master device then
+  messages can no longer be sent to this account. If this is a linked device,
+  messages can still be sent to the account but this device will no longer
+  receive them. Returns an updated session with an updated account that
+  indicates the account is no longer registered, this data should be saved to
+  persistent storage via the account/store function."
+  [session]
+  (if (get-in session [:account :registered])
+    (try+
+     (.setGcmId (get-in session [:session :manager]) (Optional/empty))
+     (assoc session :account
+            (merge (:account session)
+                   {:registered false}))
+     (catch Exception exception
+       (throw+ {:type :unregister-fail :message (.getMessage exception)})))
+    session))

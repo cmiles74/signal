@@ -66,9 +66,11 @@
 ;; Verification will complete registration and un-register your other device.
 ;; You will need to link in that device later.
 ;;
-;; (def s (signal/verify-code s CODE PIN))
+;; (def s (signal/verify-code s CODE PIN))  ; PIN is optional
 ;;
 ;; Store the updated account from inside the session
 ;;
 ;; (account/store s)
 
+;; accountManager.setGcmId(Optional.of(GoogleCloudMessaging.getInstance(this).register(REGISTRATION_ID)))
+;; accountManager.setPreKeys(identityKey.getPublicKey(), lastResortKey, signedPreKeyRecord, oneTimePreKeys)
