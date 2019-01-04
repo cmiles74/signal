@@ -29,6 +29,7 @@
     {:username (str country-code phone-number)
      :password (secret/password)
      :registered false
+     :multi-devices false
      :signaling-key (secret/signaling-key)
      :registration-id (KeyHelper/generateRegistrationId false)
      :identity-keypair (KeyHelper/generateIdentityKeyPair)
@@ -41,7 +42,8 @@
 (defn encode-storage
   "Transforms a map of account data for storage to disk."
   [config-map]
-  (assoc config-map :account
+  (assoc (dissoc config-map :session)  ; remove current session data
+         :account
          (merge (:account config-map)
                  {:profile-key (Base64/encodeBytes
                                 (get-in config-map [:account :profile-key]))
@@ -61,13 +63,11 @@
 (defn store-file
   "Stores the provided map of account data to to the provided path with the
   specified file name."
-  ([config-map] (store-file (System/getProperty "user.home") default-config-file config-map))
-  ([path-in filename config-map]
+  ([config-map] (store-file config-map (str (System/getProperty "user.home") "/" default-config-file)))
+  ([config-map path]
    (let [config-map-persist (encode-storage config-map)]
      (try+
-      (config/save-config-file path-in
-                               filename
-                               config-map-persist)
+      (config/save-config-file path config-map-persist)
       true
       (catch Exception exception
         (throw+ {:type :config-save-fail :message (.getMessage exception)}))))))
@@ -84,14 +84,17 @@
     (decode-storage config)))
 
 (defn store
-  "Saves the provided account data to the default configuration file."
-  [account]
-  (store-file account))
+  "Saves the provided account data to the default configuration file or to the
+  provided path."
+  ([account] (store-file account))
+  ([account path] (store-file account path)))
 
 (defn load
-  "Loads the customer's account from the default configuration file."
-  []
-  (try+
-   (load-file nil)
-   (catch [:type :no-config] {:keys [message]}
-     (warn message))))
+  "Loads the customer's account from the default configuration file or from the
+  provided path."
+  ([] (load nil))
+  ([path]
+   (try+
+    (load-file path)
+    (catch [:type :no-config] {:keys [message]}
+      (warn message)))))

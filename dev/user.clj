@@ -16,6 +16,21 @@
    [org.whispersystems.libsignal IdentityKeyPair]
    [org.whispersystems.libsignal.util KeyHelper]))
 
+;; We have two primary types of data:
+;;   - account
+;;   - session
+;;
+;; Both of these are managed as maps of data, the account information persists
+;; over all Signal sessions, the session data only lives as long as we are
+;; actively interacting with the Signal service.
+;;
+;;  {:account {...}
+;;   :session {...}}
+;;
+;; The storage methods store only the map of data they are designed to store;
+;; the account/store function will only persist the account data and it knows
+;; where to find it.
+
 ;;
 ;; Create a new account
 ;;
@@ -32,25 +47,28 @@
 ;; (def a (account/load))
 
 ;;
-;; Create a signal manager
+;; Create a signal manager and returns a new map representing the account and
+;; the current session data.
 ;;
-;; (def m (signal/manager a))
+;; (def s (signal/start-session a))
 
 ;;
 ;; Request SMS verification code
 ;;
-;; Registering will un-register your other device.
+;; Registering will un-register your other device. You can link that device in
+;; later.
 ;;
-;; (signal/register-sms m)
+;; (signal/register-sms s)
 
 ;;
 ;; Verify the code
 ;;
 ;; Verification will complete registration and un-register your other device.
+;; You will need to link in that device later.
 ;;
-;; (def c (signal/verify-code m a CODE))
+;; (def s (signal/verify-code s CODE PIN))
 ;;
-;; Store the updated account
+;; Store the updated account from inside the session
 ;;
-;; (account/store a)
+;; (account/store s)
 

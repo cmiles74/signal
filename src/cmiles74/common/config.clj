@@ -47,11 +47,10 @@
     :else default-config))
 
 (defn save-config-file
-  "Saves the provided configuration map to the specified file name at the provided
-  path."
-  [path-in file-name config-map]
+  "Saves the provided configuration map to the provided path."
+  [path-in config-map]
   (try+
-   (spit (str path-in "/" file-name) (yaml/generate-string config-map))
+   (spit path-in (yaml/generate-string config-map))
    (catch Exception exception
      (error "Could not write the configuration file: " (.getMessage exception))
      (throw+))))

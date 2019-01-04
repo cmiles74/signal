@@ -6,6 +6,7 @@
                  spy get-env log-env)]
    [taoensso.timbre.profiling :as profiling
     :refer (pspy pspy* profile defnp p p*)]
+   [clojure.string :as string]
    [cmiles74.signal.trust :as trust])
   (:use [slingshot.slingshot :only [try+ throw+]])
   (:import
@@ -30,60 +31,72 @@
   (Security/addProvider (new BouncyCastleProvider)))
 
 (defn config
-  "Returns a new SignalServiceConfiguration instance that is configured with the
-  provided configuration map."
-  [config]
+  "Returns a new SignalServiceConfiguration instance."
+  []
   (let [trust-store (trust/create)]
     (new SignalServiceConfiguration
          (into-array [(new SignalServiceUrl (get-in signal-config [:signal :signal-url]) trust-store)])
          (into-array [(new SignalCdnUrl (get-in signal-config [:signal :cdn-url]) trust-store)])
          (into-array [(new SignalContactDiscoveryUrl (get-in signal-config [:signal :signal-url]) trust-store)]))))
 
-(defn manager
-  "Returns a new SignalServiceAccountManager instance that is configured with the
-  provided configuration map."
-  [config-in]
-  (let [service-config (config config-in)]
-    (new SignalServiceAccountManager
-         service-config
-         (get-in config-in [:account :username])
-         (get-in config-in [:account :password])
-         (get-in signal-config [:signal :user-agent]))))
+(defn start-session
+  "Starts a new signal session with the provided account map and returns a new map
+  that include the account and the session data. This map will be used for all
+  further interaction with the Signal service methods."
+  [account]
+  (let [service-config (config)]
+    (try+
+     (assoc account :session
+            {:service-config service-config
+             :manager (new SignalServiceAccountManager
+                           service-config
+                           (get-in account [:account :username])
+                           (get-in account [:account :password])
+                           (get-in signal-config [:signal :user-agent]))})
+     (catch Exception exception
+       (throw+ {:type :session-fail :message (.getMessage exception)})))))
 
 (defn register-sms
-  "Registers the account and requests a verification code via SMS message."
-  [manager-in]
+  "Registers the account and requests a verification code via SMS message.
+  Requires a valid session map as provided by `start-session`."
+  [session]
   (try+
-   (.requestSmsVerificationCode manager-in)
+   (.requestSmsVerificationCode (get-in session [:session :manager]))
    true
    (catch Exception exception
      (throw+ {:type :register-fail :message (.getMessage exception)}))))
 
 (defn register-voice
-  "Registers the account and requests a verification code via voice message."
-  [manager-in]
+  "Registers the account and requests a verification code via voice message.
+  Requires a valid session map as provided by `start-session`."
+  [session]
   (try+
-   (.requestVoiceVerificationCode manager-in)
+   (.requestVoiceVerificationCode (get-in session [:session :manager]))
    true
    (catch Exception exception
      (throw+ {:type :register-fail :message (.getMessage exception)}))))
 
 (defn verify-code
-  "Verifies the supplied account with the provided verification code. Returns an
-  updated account map that should be saved to persistent storage."
-  [manager-in account code]
-  (try+
-   (.verifyAccountWithCode manager-in
-                           code
-                           (get-in account [:account :signaling-key])
-                           (get-in account [:account :registration-id])
-                           true    ; fetches messages
-                           nil
-                           (UnidentifiedAccess/deriveAccessKeyFrom (get-in account [:account :profile-key]))
-                           false) ; unrestricted unidentified access
-   (assoc account :account
-          (merge (:account account)
-                 {:registered true}))
-   (catch Exception exception
-     (warn "Error verifying account access code:" (.getMessage exception))
-     (throw+ {:type :verify-fail :message (.getMessage exception)}))))
+  "Verifies the supplied account with the provided verification code; if the
+  account has a registration lock set then the PIN should be provided as well.
+  Returns an updated session map that contains an updated account map and should
+  be saved to persistent storage (simply provided the updated session map to the
+  account/store function). Requires a valid session map as provided by
+  `start-session`."
+  ([session code] (verify-code session code nil))
+  ([session code registration-lock-pin]
+   (try+
+    (.verifyAccountWithCode (get-in session [:session :manager])
+                            (string/replace code "-" "")  ; remove any dashes from the code
+                            (get-in session [:account :signaling-key])
+                            (get-in session [:account :registration-id])
+                            true    ; fetches messages
+                            registration-lock-pin
+                            (UnidentifiedAccess/deriveAccessKeyFrom (get-in session [:account :profile-key]))
+                            false) ; unrestricted unidentified access
+    (assoc session :account
+           (merge (:account session)
+                  {:registered true}))
+    (catch Exception exception
+      (warn "Error verifying account access code:" (.getMessage exception))
+      (throw+ {:type :verify-fail :message (.getMessage exception)})))))
