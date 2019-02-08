@@ -13,6 +13,8 @@
    [java.security Security]
    [java.util Optional]
    [java.util Locale]
+   [java.net URLEncoder]
+   [java.net URLDecoder]
    [org.bouncycastle.jce.provider BouncyCastleProvider]
    [org.whispersystems.signalservice.api.push TrustStore]
    [org.whispersystems.signalservice.api.crypto UnidentifiedAccess]
@@ -20,7 +22,9 @@
    [org.whispersystems.signalservice.internal.configuration SignalServiceUrl]
    [org.whispersystems.signalservice.internal.configuration SignalCdnUrl]
    [org.whispersystems.signalservice.internal.configuration SignalContactDiscoveryUrl]
-   [org.whispersystems.signalservice.api SignalServiceAccountManager]))
+   [org.whispersystems.signalservice.api SignalServiceAccountManager]
+   [org.whispersystems.signalservice.internal.util Base64]
+   [org.whispersystems.signalservice.api.util UptimeSleepTimer]))
 
 ;; signal configuration
 (defonce signal-config
@@ -50,11 +54,12 @@
     (try+
      (assoc account :session
             {:service-config service-config
-             :manager (new SignalServiceAccountManager
+             :manager (SignalServiceAccountManager.
                            service-config
                            (get-in account [:account :username])
                            (get-in account [:account :password])
-                           (get-in signal-config [:signal :user-agent]))})
+                           (get-in signal-config [:signal :user-agent])
+                           (UptimeSleepTimer.))})
      (catch Exception exception
        (throw+ {:type :session-fail :message (.getMessage exception)})))))
 
@@ -133,3 +138,29 @@
      (catch Exception exception
        (throw+ {:type :unregister-fail :message (.getMessage exception)})))
     session))
+
+(defn link-device-url
+  "Provides a URL that can be used to link a new device to this account."
+  [session device-name]
+  (let [device-id (.getNewDeviceUuid (get-in [:session :manager]))]
+    (str "tsdevice:/?uuid="
+         (URLEncoder/encode device-id "utf-8")
+         "&pub_key="
+         (URLEncoder/encode
+          (Base64/encodeBytesWithoutPadding
+           (.serialize (.getPublicKey (get-in session [:account :identity-keypair])))) "utf-8"))))
+
+(defn finish-device-registration
+  "Waits for the device registration to complete (blocks until registration completes or times out)."
+  [session device-name]
+  (let [manager (get-in session [:session :manager])]
+    (try+
+     (.finishNewDeviceRegistration manager
+                                   (get-in session [:account :identity-keypair])
+                                   (get-in session [:account :signaling-key])
+                                   false  ; supports SMS
+                                   true   ; fetches messages
+                                   (get-in session [:account :registration-id])
+                                   device-name)
+     (catch Exception exception
+       (throw+ {:type :device-registration-fail :message (.getMessage exception)})))))

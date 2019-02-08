@@ -10,7 +10,8 @@
                  [org.slf4j/slf4j-simple "1.7.25"]
                  [clojure-msgpack "1.2.1"]
                  [org.bouncycastle/bcprov-jdk15on "1.60"]
-                 [org.whispersystems/signal-service-java "2.12.2"]]
+                 ;[org.whispersystems/signal-service-java "2.12.2"]
+                 [com.github.turasa/signal-service-java "2.12.4_unofficial_1"]]
   :main cmiles74.signal.cli
   :repl-options { :init-ns user}
 

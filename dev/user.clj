@@ -71,6 +71,3 @@
 ;; Store the updated account from inside the session
 ;;
 ;; (account/store s)
-
-;; accountManager.setGcmId(Optional.of(GoogleCloudMessaging.getInstance(this).register(REGISTRATION_ID)))
-;; accountManager.setPreKeys(identityKey.getPublicKey(), lastResortKey, signedPreKeyRecord, oneTimePreKeys)
